@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Consulta CUIT</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input { padding: 5px; width: 300px; }
+    #resultado { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Consulta de CUIT</h2>
+  <p>Ingresá el DNI o nombre:</p>
+  <input type="text" id="dni" placeholder="Ej: 29876543 o Perez Juan">
+  <button onclick="buscar()">Buscar</button>
+
+  <div id="resultado"></div>
+
+  <script>
+    function buscar() {
+      const dni = document.getElementById('dni').value.trim();
+      if (!dni) return;
+
+      const url = 'https://www.cuitonline.com/search/' + encodeURIComponent(dni);
+      const proxy = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+
+      document.getElementById('resultado').innerHTML = "Buscando...";
+
+      fetch(proxy)
+        .then(response => response.json())
+        .then(data => {
+          const html = data.contents;
+          let cuit = null;
+          let nombre = null;
+
+          // Primer formato
+          let match1 = html.match(/<span class="cuit">(.*?)<\/span>.*?title="Constancia de Inscripción de (.*?)"/s);
+          if (match1) {
+            cuit = match1[1];
+            nombre = match1[2];
+          }
+
+          // Segundo formato
+          if (!cuit || !nombre) {
+            let match2 = html.match(/<h2 class="denominacion".*?>(.*?)<\/h2>.*?<span class="cuit">(.*?)<\/span>/s);
+            if (match2) {
+              nombre = match2[1];
+              cuit = match2[2];
+            }
+          }
+
+          if (cuit && nombre) {
+            document.getElementById('resultado').innerHTML = `
+              <p><strong>CUIT:</strong> ${cuit}</p>
+              <p><strong>Nombre:</strong> ${nombre}</p>
+            `;
+          } else {
+            document.getElementById('resultado').innerHTML = "No se encontró el CUIT o el nombre.";
+          }
+        })
+        .catch(error => {
+          console.error(error);
+          document.getElementById('resultado').innerHTML = "Error al consultar los datos.";
+        });
+    }
+  </script>
+</body>
+</html>
