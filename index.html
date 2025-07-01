@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Consulta CUIT</title>
+  <title>Buscar Persona</title>
   <style>
     body { font-family: Arial; padding: 20px; }
     input { padding: 5px; width: 300px; }
@@ -10,25 +10,41 @@
   </style>
 </head>
 <body>
-  <h2>Consulta de CUIT</h2>
+  <h2>Buscar Persona</h2>
   <p>Ingresá el DNI o nombre:</p>
-  <input type="text" id="dni" placeholder="Ej: 29876543 o Perez Juan">
+  <input type="text" id="dni" placeholder="Ej: 29000000 o Perez Juan">
   <button onclick="buscar()">Buscar</button>
 
   <div id="resultado"></div>
 
   <script>
-    function buscar() {
-      const dni = document.getElementById('dni').value.trim();
-      if (!dni) return;
+    const input = document.getElementById('dni');
+    input.addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        buscar();
+      }
+    });
+
+    function buscar(intentos = 1) {
+      const dniInput = document.getElementById('dni');
+      const dni = dniInput.value.trim();
+      const resultado = document.getElementById('resultado');
+
+      if (!dni) {
+        resultado.innerHTML = "Por favor ingresá un DNI o nombre.";
+        return;
+      }
 
       const url = 'https://www.cuitonline.com/search/' + encodeURIComponent(dni);
       const proxy = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
 
-      document.getElementById('resultado').innerHTML = "Buscando...";
+      resultado.innerHTML = "Buscando...";
 
       fetch(proxy)
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) throw new Error("Respuesta no OK");
+          return response.json();
+        })
         .then(data => {
           const html = data.contents;
           let cuit = null;
@@ -51,17 +67,21 @@
           }
 
           if (cuit && nombre) {
-            document.getElementById('resultado').innerHTML = `
+            resultado.innerHTML = `
               <p><strong>CUIT:</strong> ${cuit}</p>
               <p><strong>Nombre:</strong> ${nombre}</p>
             `;
           } else {
-            document.getElementById('resultado').innerHTML = "No se encontró el CUIT o el nombre.";
+            resultado.innerHTML = "No se encontró el CUIT o el nombre.";
           }
         })
         .catch(error => {
-          console.error(error);
-          document.getElementById('resultado').innerHTML = "Error al consultar los datos.";
+          if (intentos > 0) {
+            resultado.innerHTML = "Reintentando...";
+            setTimeout(() => buscar(intentos - 1), 1000);
+          } else {
+            resultado.innerHTML = "Error al consultar los datos.";
+          }
         });
     }
   </script>
